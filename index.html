@@ -1,18 +1,18 @@
- &lt;!DOCTYPE html&gt;
-&lt;html lang=&quot;en&quot;&gt;
-&lt;head&gt;
-  &lt;meta charset=&quot;UTF-8&quot;&gt;
-  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
-  &lt;title&gt;Burrito Ninja&lt;/title&gt;
-  &lt;style&gt;
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Burrito Ninja</title>
+  <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: linear-gradient(to top, #87CEEB 0%, #98D8E8 100%); overflow: hidden; font-family: Arial, sans-serif; user-select: none; }
     canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
-  &lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
-  &lt;canvas id=&quot;gameCanvas&quot;&gt;&lt;/canvas&gt;
-  &lt;script&gt;
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -38,7 +38,7 @@
     resizeCanvas();
 
     // Mouse
-    canvas.addEventListener('mousemove', (e) =&gt; {
+    canvas.addEventListener('mousemove', (e) => {
       mouse.prevX = mouse.x;
       mouse.prevY = mouse.y;
       mouse.x = e.clientX;
@@ -49,7 +49,7 @@
 
     // Touch
     canvas.addEventListener('touchstart', handleInput, { passive: false });
-    canvas.addEventListener('touchmove', (e) =&gt; {
+    canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
       mouse.prevX = mouse.x;
@@ -72,9 +72,9 @@
 
     function handleClick() {
       if (gameState === 'menu') {
-        if (mouse.x &gt; canvas.width / 2 - 100 &amp;&amp; mouse.x &lt; canvas.width / 2 + 100 &amp;&amp; mouse.y &gt; canvas.height / 2 &amp;&amp; mouse.y &lt; canvas.height / 2 + 60) {
+        if (mouse.x > canvas.width / 2 - 100 && mouse.x < canvas.width / 2 + 100 && mouse.y > canvas.height / 2 && mouse.y < canvas.height / 2 + 60) {
           startGame();
-        } else if (mouse.x &gt; canvas.width / 2 - 100 &amp;&amp; mouse.x &lt; canvas.width / 2 + 100 &amp;&amp; mouse.y &gt; canvas.height / 2 + 80 &amp;&amp; mouse.y &lt; canvas.height / 2 + 140) {
+        } else if (mouse.x > canvas.width / 2 - 100 && mouse.x < canvas.width / 2 + 100 && mouse.y > canvas.height / 2 + 80 && mouse.y < canvas.height / 2 + 140) {
           gameState = 'instructions';
         }
       } else if (gameState === 'instructions') {
@@ -100,7 +100,7 @@
 
     function spawnBurrito() {
       const chance = spawnChance * speedMult;
-      if (Math.random() &lt; chance) {
+      if (Math.random() < chance) {
         burritos.push({
           x: Math.random() * canvas.width,
           y: canvas.height + 50,
@@ -117,16 +117,16 @@
       const dx = x2 - x1;
       const dy = y2 - y1;
       const lenSq = dx * dx + dy * dy;
-      if (lenSq === 0) return Math.hypot(cx - x1, cy - y1) &lt; r;
+      if (lenSq === 0) return Math.hypot(cx - x1, cy - y1) < r;
       let t = ((cx - x1) * dx + (cy - y1) * dy) / lenSq;
       t = Math.max(0, Math.min(1, t));
       const projX = x1 + t * dx;
       const projY = y1 + t * dy;
-      return Math.hypot(cx - projX, cy - projY) &lt; r;
+      return Math.hypot(cx - projX, cy - projY) < r;
     }
 
     function addParticles(x, y, count = 10) {
-      for (let i = 0; i &lt; count; i++) {
+      for (let i = 0; i < count; i++) {
         particles.push({
           x, y,
           vx: (Math.random() - 0.5) * 400,
@@ -146,16 +146,16 @@
 
       spawnBurrito();
 
-      if (mouse.down &amp;&amp; trail.length &gt; 0) {
+      if (mouse.down && trail.length > 0) {
         trail.push({ x: mouse.x, y: mouse.y });
-        if (trail.length &gt; 20) trail.shift();
+        if (trail.length > 20) trail.shift();
       }
 
       // Combo decay
-      if (gameTime - lastSliceTime &gt; 1.5) combo = 0;
+      if (gameTime - lastSliceTime > 1.5) combo = 0;
 
       // Burritos
-      for (let i = burritos.length - 1; i &gt;= 0; i--) {
+      for (let i = burritos.length - 1; i >= 0; i--) {
         const b = burritos[i];
         b.x += b.vx * dt;
         b.y += b.vy * dt;
@@ -169,13 +169,13 @@
             addParticles(b.x, b.y);
           }
 
-          if (b.y + b.r &lt; -50) {
+          if (b.y + b.r < -50) {
             lives--;
             combo = 0;
             burritos.splice(i, 1);
-            if (lives &lt;= 0) {
+            if (lives <= 0) {
               gameState = 'gameover';
-              if (score &gt; highScore) {
+              if (score > highScore) {
                 highScore = score;
                 localStorage.setItem('burritoNinjaHighScore', highScore);
               }
@@ -187,20 +187,20 @@
           b.vx += (Math.random() - 0.5) * 200 * dt;
           b.life -= dt * 2;
           b.r *= 0.99;
-          if (b.life &lt;= 0 || b.r &lt; 2) {
+          if (b.life <= 0 || b.r < 2) {
             burritos.splice(i, 1);
           }
         }
       }
 
       // Particles
-      for (let i = particles.length - 1; i &gt;= 0; i--) {
+      for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.vy += 300 * dt;
         p.life -= dt / p.maxLife;
-        if (p.life &lt;= 0) particles.splice(i, 1);
+        if (p.life <= 0) particles.splice(i, 1);
       }
     }
 
@@ -213,7 +213,7 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Burritos
-      burritos.forEach(b =&gt; {
+      burritos.forEach(b => {
         ctx.save();
         ctx.translate(b.x, b.y);
         ctx.rotate((Math.random() - 0.5) * 0.2); // slight wobble
@@ -252,7 +252,7 @@
       });
 
       // Trail
-      if (trail.length &gt; 1) {
+      if (trail.length > 1) {
         ctx.save();
         ctx.shadowColor = 'white';
         ctx.shadowBlur = 20;
@@ -261,7 +261,7 @@
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.beginPath();
-        trail.forEach((p, i) =&gt; {
+        trail.forEach((p, i) => {
           if (i === 0) ctx.moveTo(p.x, p.y);
           else ctx.lineTo(p.x, p.y);
         });
@@ -270,7 +270,7 @@
         ctx.lineWidth = 6;
         ctx.strokeStyle = 'rgba(200,255,255,0.6)';
         ctx.beginPath();
-        trail.forEach((p, i) =&gt; {
+        trail.forEach((p, i) => {
           if (i === 0) ctx.moveTo(p.x, p.y);
           else ctx.lineTo(p.x, p.y);
         });
@@ -281,7 +281,7 @@
       // Particles
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      particles.forEach(p =&gt; {
+      particles.forEach(p => {
         ctx.save();
         ctx.globalAlpha = p.life;
         ctx.fillStyle = 'yellow';
@@ -334,7 +334,7 @@
           '',
           'Click anywhere to return.'
         ];
-        lines.forEach((line, i) =&gt; ctx.fillText(line, canvas.width / 4, canvas.height / 4 + i * 50));
+        lines.forEach((line, i) => ctx.fillText(line, canvas.width / 4, canvas.height / 4 + i * 50));
         ctx.textAlign = 'center';
       } else if (gameState === 'playing') {
         ctx.textBaseline = 'top';
@@ -371,6 +371,6 @@
     }
 
     requestAnimationFrame(gameLoop);
-  &lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;
+  </script>
+</body>
+</html>
