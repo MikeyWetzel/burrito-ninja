@@ -1,4 +1,4 @@
-&lt;!DOCTYPE html&gt;
+ &lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
   &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -6,7 +6,7 @@
   &lt;title&gt;Burrito Ninja&lt;/title&gt;
   &lt;style&gt;
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: linear-gradient(to top, #87CEEB 0%, #98D8E8 100%); overflow: hidden; font-family: Arial, sans-serif; }
+    body { background: linear-gradient(to top, #87CEEB 0%, #98D8E8 100%); overflow: hidden; font-family: Arial, sans-serif; user-select: none; }
     canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
   &lt;/style&gt;
 &lt;/head&gt;
@@ -16,9 +16,18 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
+    let gameState = 'menu'; // 'menu', 'playing', 'gameover', 'instructions'
     let score = 0;
+    let highScore = localStorage.getItem('burritoNinjaHighScore') || 0;
+    let lives = 3;
+    let combo = 0;
+    let lastSliceTime = 0;
+    let gameTime = 0;
+    let spawnChance = 0.01;
+    let speedMult = 1;
     let burritos = [];
     let trail = [];
+    let particles = [];
     let mouse = { x: 0, y: 0, down: false, prevX: 0, prevY: 0 };
 
     function resizeCanvas() {
@@ -28,24 +37,18 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Mouse events
+    // Mouse
     canvas.addEventListener('mousemove', (e) =&gt; {
       mouse.prevX = mouse.x;
       mouse.prevY = mouse.y;
       mouse.x = e.clientX;
       mouse.y = e.clientY;
     });
-    canvas.addEventListener('mousedown', () =&gt; mouse.down = true);
-    canvas.addEventListener('mouseup', () =&gt; {
-      mouse.down = false;
-      trail = [];
-    });
+    canvas.addEventListener('mousedown', handleInput);
+    canvas.addEventListener('mouseup', handleInput);
 
-    // Touch events
-    canvas.addEventListener('touchstart', (e) =&gt; {
-      e.preventDefault();
-      mouse.down = true;
-    }, { passive: false });
+    // Touch
+    canvas.addEventListener('touchstart', handleInput, { passive: false });
     canvas.addEventListener('touchmove', (e) =&gt; {
       e.preventDefault();
       const touch = e.touches[0];
@@ -54,19 +57,55 @@
       mouse.x = touch.clientX;
       mouse.y = touch.clientY;
     }, { passive: false });
-    canvas.addEventListener('touchend', (e) =&gt; {
+    canvas.addEventListener('touchend', handleInput, { passive: false });
+
+    function handleInput(e) {
       e.preventDefault();
-      mouse.down = false;
+      if (e.type === 'mousedown' || e.type === 'touchstart') mouse.down = true;
+      else mouse.down = false;
       trail = [];
-    }, { passive: false });
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = (e.clientX || e.touches[0].clientX) - rect.left;
+      mouse.y = (e.clientY || e.touches[0].clientY) - rect.top;
+      handleClick();
+    }
+
+    function handleClick() {
+      if (gameState === 'menu') {
+        if (mouse.x &gt; canvas.width / 2 - 100 &amp;&amp; mouse.x &lt; canvas.width / 2 + 100 &amp;&amp; mouse.y &gt; canvas.height / 2 &amp;&amp; mouse.y &lt; canvas.height / 2 + 60) {
+          startGame();
+        } else if (mouse.x &gt; canvas.width / 2 - 100 &amp;&amp; mouse.x &lt; canvas.width / 2 + 100 &amp;&amp; mouse.y &gt; canvas.height / 2 + 80 &amp;&amp; mouse.y &lt; canvas.height / 2 + 140) {
+          gameState = 'instructions';
+        }
+      } else if (gameState === 'instructions') {
+        gameState = 'menu';
+      } else if (gameState === 'gameover') {
+        startGame();
+      }
+    }
+
+    function startGame() {
+      gameState = 'playing';
+      score = 0;
+      lives = 3;
+      combo = 0;
+      gameTime = 0;
+      spawnChance = 0.01;
+      speedMult = 1;
+      burritos = [];
+      trail = [];
+      particles = [];
+      lastSliceTime = 0;
+    }
 
     function spawnBurrito() {
-      if (Math.random() &lt; 0.015) {
+      const chance = spawnChance * speedMult;
+      if (Math.random() &lt; chance) {
         burritos.push({
           x: Math.random() * canvas.width,
           y: canvas.height + 50,
-          vx: (Math.random() - 0.5) * 200,
-          vy: -250 - Math.random() * 150,
+          vx: (Math.random() - 0.5) * 200 * speedMult,
+          vy: -250 * speedMult - Math.random() * 150 * speedMult,
           r: 25 + Math.random() * 25,
           sliced: false,
           life: 1.0
@@ -78,9 +117,7 @@
       const dx = x2 - x1;
       const dy = y2 - y1;
       const lenSq = dx * dx + dy * dy;
-      if (lenSq === 0) {
-        return Math.hypot(cx - x1, cy - y1) &lt; r;
-      }
+      if (lenSq === 0) return Math.hypot(cx - x1, cy - y1) &lt; r;
       let t = ((cx - x1) * dx + (cy - y1) * dy) / lenSq;
       t = Math.max(0, Math.min(1, t));
       const projX = x1 + t * dx;
@@ -88,53 +125,87 @@
       return Math.hypot(cx - projX, cy - projY) &lt; r;
     }
 
+    function addParticles(x, y, count = 10) {
+      for (let i = 0; i &lt; count; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 400,
+          vy: (Math.random() - 0.5) * 400 - 100,
+          life: 1.0,
+          maxLife: 0.5 + Math.random() * 0.5
+        });
+      }
+    }
+
     function update(dt) {
+      if (gameState !== 'playing') return;
+
+      gameTime += dt;
+      spawnChance = 0.01 + gameTime * 0.0005;
+      speedMult = 1 + gameTime * 0.0167; // increase every 60s double
+
       spawnBurrito();
 
-      // Update trail
-      if (mouse.down) {
+      if (mouse.down &amp;&amp; trail.length &gt; 0) {
         trail.push({ x: mouse.x, y: mouse.y });
         if (trail.length &gt; 20) trail.shift();
       }
 
-      // Update burritos
+      // Combo decay
+      if (gameTime - lastSliceTime &gt; 1.5) combo = 0;
+
+      // Burritos
       for (let i = burritos.length - 1; i &gt;= 0; i--) {
         const b = burritos[i];
-
         b.x += b.vx * dt;
         b.y += b.vy * dt;
 
         if (!b.sliced) {
-          // Check slice
-          if (mouse.down &amp;&amp; trail.length &gt; 1) {
-            // Check last segment
-            const last = trail[trail.length - 2];
-            if (lineIntersectsCircle(last.x, last.y, mouse.x, mouse.y, b.x, b.y, b.r)) {
-              b.sliced = true;
-              score += 10;
-            }
+          if (lineIntersectsCircle(trail[trail.length - 2]?.x || mouse.prevX, trail[trail.length - 2]?.y || mouse.prevY, mouse.x, mouse.y, b.x, b.y, b.r)) {
+            b.sliced = true;
+            score += Math.floor(10 * (1 + combo * 0.2));
+            combo++;
+            lastSliceTime = gameTime;
+            addParticles(b.x, b.y);
           }
 
-          // Remove offscreen
-          if (b.y + b.r &lt; -50 || b.x + b.r &lt; -50 || b.x - b.r &gt; canvas.width + 50) {
+          if (b.y + b.r &lt; -50) {
+            lives--;
+            combo = 0;
             burritos.splice(i, 1);
+            if (lives &lt;= 0) {
+              gameState = 'gameover';
+              if (score &gt; highScore) {
+                highScore = score;
+                localStorage.setItem('burritoNinjaHighScore', highScore);
+              }
+            }
             continue;
           }
         } else {
-          // Sliced: explode
-          b.vy += 500 * dt; // gravity
-          b.vx += (Math.random() - 0.5) * 400 * dt;
-          b.life -= dt * 3;
-          b.r *= 0.98;
-          if (b.life &lt;= 0 || b.r &lt; 2 || b.y &gt; canvas.height + 100) {
+          b.vy += 500 * dt;
+          b.vx += (Math.random() - 0.5) * 200 * dt;
+          b.life -= dt * 2;
+          b.r *= 0.99;
+          if (b.life &lt;= 0 || b.r &lt; 2) {
             burritos.splice(i, 1);
           }
         }
       }
+
+      // Particles
+      for (let i = particles.length - 1; i &gt;= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 300 * dt;
+        p.life -= dt / p.maxLife;
+        if (p.life &lt;= 0) particles.splice(i, 1);
+      }
     }
 
     function draw() {
-      // Sky bg
+      // BG
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, '#87CEEB');
       gradient.addColorStop(1, '#E0F6FF');
@@ -145,54 +216,50 @@
       burritos.forEach(b =&gt; {
         ctx.save();
         ctx.translate(b.x, b.y);
-
+        ctx.rotate((Math.random() - 0.5) * 0.2); // slight wobble
         if (b.sliced) {
-          // Sliced halves
-          ctx.fillStyle = '#A0522D'; // sliced brown
-          ctx.shadowColor = 'rgba(0,0,0,0.5)';
-          ctx.shadowBlur = 10;
-
-          // Left half
+          ctx.globalAlpha = b.life;
+          ctx.fillStyle = '#A0522D';
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = 'orange';
           ctx.beginPath();
-          ctx.arc(-b.r / 3, -b.r / 3, b.r * 0.6, 0, Math.PI * 2);
+          ctx.arc(-b.r / 2, 0, b.r / 1.4, 0, Math.PI);
           ctx.fill();
-
-          // Right half
           ctx.beginPath();
-          ctx.arc(b.r / 3, b.r / 3, b.r * 0.6, 0, Math.PI * 2);
+          ctx.arc(b.r / 2, 0, b.r / 1.4, 0, Math.PI);
           ctx.fill();
-
           ctx.shadowBlur = 0;
         } else {
-          // Intact burrito
-          ctx.fillStyle = '#D2691E'; // tortilla
+          // Tortilla
+          ctx.fillStyle = '#D2B48C';
           ctx.beginPath();
           ctx.arc(0, 0, b.r, 0, Math.PI * 2);
           ctx.fill();
+          ctx.shadowColor = 'rgba(0,0,0,0.3)';
+          ctx.shadowBlur = 10;
 
           // Fillings
-          ctx.fillStyle = '#228B22'; // lettuce
-          ctx.fillRect(-b.r / 2, -b.r / 3, b.r / 2, b.r / 3);
-
-          ctx.fillStyle = '#FF6347'; // salsa
+          ctx.fillStyle = '#32CD32';
+          ctx.fillRect(-b.r * 0.4, -b.r * 0.2, b.r * 0.8, b.r * 0.15);
+          ctx.fillStyle = '#FF4500';
           ctx.beginPath();
-          ctx.arc(b.r / 3, 0, b.r / 4, 0, Math.PI * 2);
+          ctx.ellipse(0, b.r * 0.1, b.r * 0.3, b.r * 0.1, 0, 0, Math.PI * 2);
           ctx.fill();
-
-          ctx.fillStyle = '#FFD700'; // cheese
-          ctx.fillRect(-b.r / 3, b.r / 6, b.r / 1.5, b.r / 6);
+          ctx.fillStyle = '#FFD700';
+          ctx.fillRect(-b.r * 0.2, -b.r * 0.1, b.r * 0.4, b.r * 0.08);
         }
         ctx.restore();
       });
 
-      // Sword trail
+      // Trail
       if (trail.length &gt; 1) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.lineWidth = 8;
+        ctx.save();
+        ctx.shadowColor = 'white';
+        ctx.shadowBlur = 20;
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 12;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowColor = 'white';
-        ctx.shadowBlur = 15;
         ctx.beginPath();
         trail.forEach((p, i) =&gt; {
           if (i === 0) ctx.moveTo(p.x, p.y);
@@ -200,24 +267,104 @@
         });
         ctx.stroke();
         ctx.shadowBlur = 0;
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = 'rgba(200,255,255,0.6)';
+        ctx.beginPath();
+        trail.forEach((p, i) =&gt; {
+          if (i === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+        ctx.restore();
       }
 
-      // Score
-      ctx.fillStyle = 'white';
+      // Particles
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      particles.forEach(p =&gt; {
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = 'yellow';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'orange';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+      ctx.restore();
+
+      // UI
+      const fontSize = Math.min(48, canvas.height / 20);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.shadowColor = 'black';
-      ctx.shadowBlur = 4;
-      ctx.font = `${Math.min(48, canvas.height / 20)}px Arial Black, sans-serif`;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(`Score: ${score}`, 20, 20);
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'black';
+
+      if (gameState === 'menu') {
+        ctx.fillStyle = 'white';
+        ctx.font = `${fontSize * 2}px Arial Black`;
+        ctx.fillText('BURRITO NINJA', canvas.width / 2, canvas.height / 3);
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillText('High Score: ' + Math.floor(highScore), canvas.width / 2, canvas.height / 2 - 50);
+        // Play button
+        ctx.fillStyle = 'rgba(0,255,0,0.9)';
+        ctx.fillRect(canvas.width / 2 - 100, canvas.height / 2, 200, 60);
+        ctx.fillStyle = 'white';
+        ctx.font = `${fontSize * 0.8}px Arial Bold`;
+        ctx.strokeText('PLAY', canvas.width / 2, canvas.height / 2 + 30);
+        ctx.fillText('PLAY', canvas.width / 2, canvas.height / 2 + 30);
+        // Instructions
+        ctx.fillStyle = 'rgba(0,150,255,0.9)';
+        ctx.fillRect(canvas.width / 2 - 100, canvas.height / 2 + 80, 200, 60);
+        ctx.fillStyle = 'white';
+        ctx.strokeText('HOW TO PLAY', canvas.width / 2, canvas.height / 2 + 110);
+        ctx.fillText('HOW TO PLAY', canvas.width / 2, canvas.height / 2 + 110);
+      } else if (gameState === 'instructions') {
+        ctx.fillStyle = 'white';
+        ctx.font = `${fontSize}px Arial`;
+        ctx.textAlign = 'left';
+        const lines = [
+          'Swipe with mouse or finger to slice flying burritos!',
+          'Slice combos for bonus points.',
+          'Don\\'t let burritos escape the top - lose lives!',
+          'Survive as long as possible.',
+          '',
+          'Click anywhere to return.'
+        ];
+        lines.forEach((line, i) =&gt; ctx.fillText(line, canvas.width / 4, canvas.height / 4 + i * 50));
+        ctx.textAlign = 'center';
+      } else if (gameState === 'playing') {
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'white';
+        ctx.font = `${fontSize}px Arial Black`;
+        ctx.fillText(`Score: ${score}`, 30, 30);
+        ctx.font = `${fontSize * 0.7}px Arial`;
+        ctx.fillText(`Combo: ${combo}`, 30, 80);
+        ctx.fillText(`Lives: ${lives}`, 30, 120);
+      } else if (gameState === 'gameover') {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = `${fontSize * 1.5}px Arial Black`;
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 80);
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText(`High Score: ${Math.floor(highScore)}`, canvas.width / 2, canvas.height / 2 + 30);
+        ctx.font = `${fontSize * 0.8}px Arial Bold`;
+        ctx.fillText('Click to play again', canvas.width / 2, canvas.height / 2 + 100);
+      }
+
       ctx.shadowBlur = 0;
     }
 
     let lastTime = 0;
-    function gameLoop(currentTime) {
-      const dt = Math.min((currentTime - lastTime) / 1000, 0.05); // cap dt
-      lastTime = currentTime;
-
+    function gameLoop(time) {
+      const dt = Math.min((time - lastTime) / 1000, 0.033);
+      lastTime = time;
       update(dt);
       draw();
       requestAnimationFrame(gameLoop);
