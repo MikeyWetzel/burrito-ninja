@@ -1,21 +1,35 @@
-# Burrito Ninja
+# Burrito Ninja 🎮
 
-A 2D Fruit Ninja-style game where you slice flying burritos with mouse or touch swipes. Avoid letting them fall, rack up combos, and beat high scores!
+**Fruit Ninja-style slicer: Slice flying burritos before they escape!**
 
-## Features
-- Realistic burrito physics and slicing
-- Touch/mouse controls
-- Progressive difficulty
-- Local high scores
-- Responsive design
+[![Play Now](https://github.com/MikeyWetzel/burrito-ninja/actions/workflows/pages/pages-build-deployment/badge.svg)](https://MikeyWetzel.github.io/burrito-ninja)
+
+## ✨ Features
+- 🍝 Realistic burrito sprites with fillings (procedural art)
+- 🗡️ Smooth sword trail & particles on slice
+- ⚡ Progressive speed & spawn rate
+- 🔥 Combo multiplier system
+- ❤️ Lives system with miss penalty
+- 📱 Full touch/mouse support
+- 🏆 Local high scores
+- 📋 Start menu, instructions, game over screen
+- 🎨 Responsive full-screen UI
+- 🌐 Pure HTML5 Canvas + JS (no deps, ~13KB)
+
+## 🚀 Play
+- **Live Demo**: https://MikeyWetzel.github.io/burrito-ninja (enable Pages on gh-pages branch in Settings &gt; Pages)
+- Or download `index.html` & open in browser
 
 ## How to Play
-1. Open `index.html` in a browser.
-2. Swipe or drag mouse to slice burritos.
-3. Score points per slice, lose lives on misses.
-4. Survive as long as possible!
-
-Public repo: https://github.com/MikeyWetzel/burrito-ninja
+1. **Slice**: Swipe mouse/finger across burritos
+2. **Combos**: Chain slices fast for multipliers
+3. **Survive**: 3 lives - miss 3 burritos = game over
+4. **Beat HS**: Top your high score!
 
 ## Development
-Built with HTML5 Canvas and vanilla JavaScript. No frameworks.
+- Vanilla JS/HTML5 Canvas
+- Procedural graphics (no external assets needed)
+- requestAnimationFrame 60fps
+- localStorage for persistence
+
+**Full game complete!** 🎉
